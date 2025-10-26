@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/daria/exif-cleaner/services/stripper/internal/jpegstrip"
 )
 
 func RootHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,18 +43,14 @@ func StripHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var buf bytes.Buffer
-	buf.Write(header[:n])
-	_, err = io.Copy(&buf, r.Body)
+	fullReader := io.MultiReader(bytes.NewReader(header[:n]), r.Body)
+	err = jpegstrip.Strip(fullReader, w)
 	if err != nil {
-		http.Error(w, "failed to read file", http.StatusInternalServerError)
+		http.Error(w, "failed to process JPEG", http.StatusBadRequest)
 		return
 	}
-
-	log.Printf("%s %s ct=%s size=%d", r.Method, r.URL.Path, r.Header.Get("Content-Type"), buf.Len())
-
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"status":"ok","size":%d}`, buf.Len())
+	
+	w.Write([]byte(`{"status":"ok"}`))
 }
 
 func main() {
