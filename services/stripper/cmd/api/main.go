@@ -44,13 +44,14 @@ func StripHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fullReader := io.MultiReader(bytes.NewReader(header[:n]), r.Body)
+
+	w.Header().Set("Content-Type", "image/jpeg")
+
 	err = jpegstrip.Strip(fullReader, w)
 	if err != nil {
 		http.Error(w, "failed to process JPEG", http.StatusBadRequest)
 		return
 	}
-	
-	w.Write([]byte(`{"status":"ok"}`))
 }
 
 func main() {
