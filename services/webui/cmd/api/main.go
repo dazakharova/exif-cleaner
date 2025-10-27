@@ -49,6 +49,12 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		w.WriteHeader(http.StatusBadGateway)
+		io.CopyN(w, resp.Body, 1024)
+		return
+	}
+
 	ct := resp.Header.Get("Content-Type")
 	if ct == "" {
 		ct = "image/jpeg"
