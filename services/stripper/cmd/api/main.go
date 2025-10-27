@@ -6,8 +6,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/daria/exif-cleaner/services/stripper/internal/jpegstrip"
+	"github.com/joho/godotenv"
 )
 
 func RootHandler(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +62,11 @@ func StripHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	port := "8080"
+	_ = godotenv.Load(".env", "../.env", "../../.env")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
