@@ -77,7 +77,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir("../../public")))
+	mux.Handle("/", http.FileServer(http.Dir("./public")))
 	mux.HandleFunc("/upload", UploadHandler)
 
 	log.Printf("Server started on port: %s", port)
