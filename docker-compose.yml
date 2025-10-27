@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  stripper:
+    build:
+      context: ./services/stripper
+      dockerfile: Dockerfile
+    image: exif-stripper:dev
+    environment:
+      PORT: "${STRIPPER_PORT:-8080}"
+    ports:
+      - "${STRIPPER_HOST_PORT:-8081}:${STRIPPER_PORT:-8080}"
+
+  webui:
+    build:
+      context: ./services/webui
+      dockerfile: Dockerfile
+    image: exif-webui:dev
+    environment:
+      PORT: "${WEBUI_PORT:-3000}"
+      STRIPPER_URL: "http://stripper:${STRIPPER_PORT:-8080}/strip"
+    ports:
+      - "${WEBUI_PORT:-3000}:${WEBUI_PORT:-3000}"
