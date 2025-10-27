@@ -84,7 +84,7 @@ func Strip(in io.Reader, out io.Writer) error {
 
 			return nil
 
-		case 0xE1, 0xED:
+		case 0xE1, 0xFE: // APP1 (EXIF), COM (comments)
 			err := dropSegmentWithLength(in)
 			if err != nil {
 				return err
