@@ -12,5 +12,5 @@ RUN go build -o /out/stripper ./cmd/api
 # Runtime stage
 FROM alpine:3.21 AS final
 COPY --from=builder /out/stripper /stripper
-EXPOSE 8000
+EXPOSE 8080
 ENTRYPOINT ["/stripper"]
