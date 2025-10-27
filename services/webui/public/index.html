@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>EXIF Cleaner</title>
+    <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<main class="container">
+    <div class="card">
+        <h1>EXIF Cleaner</h1>
+        <p>Upload a JPEG to remove metadata (EXIF, and comments).</p>
+
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <label class="dropzone">
+                <span>Select a JPEG file</span>
+                <input type="file" name="file" accept=".jpg,.jpeg,image/jpeg" required />
+            </label>
+            <button type="submit">Clean Metadata</button>
+        </form>
+    </div>
+</main>
+</body>
+</html>
