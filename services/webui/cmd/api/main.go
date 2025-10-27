@@ -8,6 +8,26 @@ import (
 	"github.com/joho/godotenv"
 )
 
+func UploadHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	err := r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		http.Error(w, "failed to parse form or file too large", http.StatusBadRequest)
+		return
+	}
+
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "file field is required", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+}
+
 func main() {
 	_ = godotenv.Load(".env", "../.env", "../../.env")
 	port := os.Getenv("PORT")
