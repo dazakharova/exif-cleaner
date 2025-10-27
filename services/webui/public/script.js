@@ -1,4 +1,5 @@
 (function () {
+    const form = document.querySelector('form');
     const input = document.getElementById('file');
     const chosen = document.getElementById('chosen');
 
@@ -13,5 +14,13 @@
         const sizeKB = (f.size / 1024).toFixed(1);
         chosen.textContent = `${f.name} • ${sizeKB} KB`;
         chosen.hidden = false;
+    });
+
+    form.addEventListener('submit', () => {
+        setTimeout(() => {
+            form.reset();
+            chosen.hidden = true;
+            chosen.textContent = '';
+        }, 500);
     });
 })();
