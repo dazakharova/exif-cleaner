@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -27,9 +28,15 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	marker := r.FormValue("metadataMarker")
+
 	stripperURL := os.Getenv("STRIPPER_URL")
 	if stripperURL == "" {
 		stripperURL = "http://localhost:8080/strip"
+	}
+
+	if marker != "" {
+		stripperURL = fmt.Sprintf("%s?marker=%s", stripperURL, url.QueryEscape(marker))
 	}
 
 	req, err := http.NewRequest(r.Method, stripperURL, file)
