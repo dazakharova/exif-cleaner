@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -37,6 +39,24 @@ func TestRootHandler(t *testing.T) {
 		}
 		if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, "text/css") {
 			t.Fatalf("Content-Type=%q", ct)
+		}
+	})
+
+	t.Run("POST /upload without file field -> 400", func(t *testing.T) {
+		var buf bytes.Buffer
+		w := multipart.NewWriter(&buf)
+		// no file part added
+		_ = w.WriteField("foo", "bar")
+		_ = w.Close()
+
+		req := httptest.NewRequest(http.MethodPost, "/upload", &buf)
+		req.Header.Set("Content-Type", w.FormDataContentType())
+
+		rec := httptest.NewRecorder()
+		UploadHandler(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", rec.Code)
 		}
 	})
 }
