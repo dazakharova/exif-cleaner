@@ -6,8 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +68,6 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	_ = godotenv.Load(".env", "../.env", "../../.env")
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
