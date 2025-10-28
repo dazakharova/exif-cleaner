@@ -38,3 +38,13 @@ func makeSOS(scan []byte) []byte {
 
 	return append(seg, scan...)
 }
+
+func containsMarker(image []byte, marker byte) bool {
+	for i := 0; i < len(image); i++ {
+		if image[i] == 0xFF && image[i+1] == marker {
+			return true
+		}
+	}
+
+	return false
+}
