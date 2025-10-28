@@ -42,7 +42,7 @@ func TestHealthHandler(t *testing.T) {
 }
 
 func TestStripHandler(t *testing.T) {
-	t.Run("Valid JPEG", func(t *testing.T) {
+	t.Run("POST valid JPEG returns status 200 and image/jpeg content", func(t *testing.T) {
 		app1 := testutil.MakeSegment(0xE1, []byte("Exif\x00\x00something"))
 		com := testutil.MakeSegment(0xFE, []byte("comment"))
 		sos := testutil.MakeSOS([]byte{0x11, 0x22, 0x33})
@@ -58,6 +58,22 @@ func TestStripHandler(t *testing.T) {
 		}
 		if got := rec.Header().Get("Content-Type"); got != "image/jpeg" {
 			t.Fatalf("Content-Type = %q", got)
+		}
+	})
+
+	t.Run("GET /strip returns 405", func(t *testing.T) {
+		app1 := testutil.MakeSegment(0xE1, []byte("Exif\x00\x00something"))
+		com := testutil.MakeSegment(0xFE, []byte("comment"))
+		sos := testutil.MakeSOS([]byte{0x11, 0x22, 0x33})
+		jpeg := testutil.MakeJPEG(app1, com, sos)
+
+		req := httptest.NewRequest(http.MethodGet, "/strip", bytes.NewReader(jpeg))
+		rec := httptest.NewRecorder()
+
+		StripHandler(rec, req)
+
+		if rec.Code != http.StatusMethodNotAllowed {
+			t.Fatalf("expected 405, got %d", rec.Code)
 		}
 	})
 }
