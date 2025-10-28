@@ -15,7 +15,7 @@ func TestStripValidImage(t *testing.T) {
 	dqt := testutil.MakeSegment(0xDB, []byte{0x00})
 	sos := testutil.MakeSOS([]byte{0x11, 0x22, 0x33, 0x00, 0xFF, 0x00})
 
-	img := makeJPEG(app1, com, dqt, sos)
+	img := testutil.MakeJPEG(app1, com, dqt, sos)
 
 	r := bytes.NewReader(img)
 	var out bytes.Buffer
@@ -42,7 +42,7 @@ func TestStripValidImage(t *testing.T) {
 			t.Fatalf("output not bounded by SOI/EOI; head=% X tail=% X", got[:2], got[len(got)-2:])
 		}
 
-		if !containsMarker(got, 0xDB) {
+		if !testutil.ContainsMarker(got, 0xDB) {
 			t.Fatal("expected DQT (0xDB) to be preserved, but it’s missing")
 		}
 	})
@@ -113,7 +113,7 @@ func TestStripInvalidImage(t *testing.T) {
 	t.Run("Truncated after SOS missing final EOI", func(t *testing.T) {
 		// SOS header
 		sosHeader := []byte{0x00, 0x03, 0x01, 0x00, 0x02}
-		sos := makeSegment(0xDA, sosHeader) // FF DA <len> <hdr>
+		sos := testutil.MakeSegment(0xDA, sosHeader) // FF DA <len> <hdr>
 
 		// Build SOI, DQT, SOS, scan bytes, etc, BUT no final FFD9
 		var b bytes.Buffer
