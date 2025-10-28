@@ -1,4 +1,4 @@
-package jpegstrip
+package jpegstrip_test
 
 import (
 	"bytes"
