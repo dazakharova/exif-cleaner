@@ -30,3 +30,11 @@ func makeJPEG(segments ...[]byte) []byte {
 	b.Write([]byte{0xFF, 0xD9})
 	return b.Bytes()
 }
+
+func makeSOS(scan []byte) []byte {
+	// Minimal SOS header payload
+	sosHeader := []byte{0x00, 0x03, 0x01, 0x00, 0x02}
+	seg := makeSegment(0xDA, sosHeader) // SOS (Start of Scan)
+
+	return append(seg, scan...)
+}
