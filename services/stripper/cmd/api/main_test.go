@@ -76,4 +76,25 @@ func TestStripHandler(t *testing.T) {
 			t.Fatalf("expected 405, got %d", rec.Code)
 		}
 	})
+
+	t.Run("POST non-JPEG returns 415", func(t *testing.T) {
+		var b bytes.Buffer
+		app1 := testutil.MakeSegment(0xE1, []byte("Exif\x00\x00something"))
+		com := testutil.MakeSegment(0xFE, []byte("comment"))
+		sos := testutil.MakeSOS([]byte{0x11, 0x22, 0x33})
+
+		b.Write(app1)
+		b.Write(com)
+		b.Write(sos)
+		b.Write([]byte{0xFF, 0xD9})
+
+		req := httptest.NewRequest(http.MethodPost, "/strip", bytes.NewReader(b.Bytes()))
+		rec := httptest.NewRecorder()
+
+		StripHandler(rec, req)
+
+		if rec.Code != http.StatusUnsupportedMediaType {
+			t.Fatalf("expected 415, got %d (body=%q)", rec.Code, rec.Body.String())
+		}
+	})
 }
