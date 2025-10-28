@@ -1,4 +1,4 @@
-package jpegstrip_test
+package jpegstrip
 
 import (
 	"bytes"
@@ -6,31 +6,31 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/daria/exif-cleaner/services/stripper/internal/jpegstrip"
+	"github.com/daria/exif-cleaner/services/stripper/internal/testutil"
 )
 
 func TestStripValidImage(t *testing.T) {
-	app1 := makeSegment(0xE1, []byte("Exif\x00\x00SOME-EXIF-DATA"))
-	com := makeSegment(0xFE, []byte("some comment"))
-	dqt := makeSegment(0xDB, []byte{0x00})
-	sos := makeSOS([]byte{0x11, 0x22, 0x33, 0x00, 0xFF, 0x00})
+	app1 := testutil.MakeSegment(0xE1, []byte("Exif\x00\x00SOME-EXIF-DATA"))
+	com := testutil.MakeSegment(0xFE, []byte("some comment"))
+	dqt := testutil.MakeSegment(0xDB, []byte{0x00})
+	sos := testutil.MakeSOS([]byte{0x11, 0x22, 0x33, 0x00, 0xFF, 0x00})
 
 	img := makeJPEG(app1, com, dqt, sos)
 
 	r := bytes.NewReader(img)
 	var out bytes.Buffer
 
-	err := jpegstrip.Strip(r, &out)
+	err := Strip(r, &out)
 	if err != nil {
 		t.Fatalf("Strip() unexpected error: %v", err)
 	}
 	got := out.Bytes()
 
 	t.Run("Removes APP1 and COM", func(t *testing.T) {
-		if containsMarker(got, 0xE1) {
+		if testutil.ContainsMarker(got, 0xE1) {
 			t.Fatal("APP1 (EXIF) not removed")
 		}
-		if containsMarker(got, 0xFE) {
+		if testutil.ContainsMarker(got, 0xFE) {
 			t.Fatal("COM marker not removed")
 		}
 	})
@@ -60,8 +60,8 @@ func TestStripInvalidImage(t *testing.T) {
 		data := []byte("not-a-jpeg")
 		var out bytes.Buffer
 
-		err := jpegstrip.Strip(bytes.NewReader(data), &out)
-		if !errors.Is(err, jpegstrip.ErrNotJPEG) {
+		err := Strip(bytes.NewReader(data), &out)
+		if !errors.Is(err, ErrNotJPEG) {
 			t.Fatalf("want ErrNotJPEG, got %v", err)
 		}
 	})
@@ -71,8 +71,8 @@ func TestStripInvalidImage(t *testing.T) {
 		data := []byte{0xFF} // only first byte of SOI
 		var out bytes.Buffer
 
-		err := jpegstrip.Strip(bytes.NewReader(data), &out)
-		if !errors.Is(err, jpegstrip.ErrTruncated) {
+		err := Strip(bytes.NewReader(data), &out)
+		if !errors.Is(err, ErrTruncated) {
 			t.Fatalf("want ErrTruncated, got %v", err)
 		}
 	})
@@ -85,8 +85,8 @@ func TestStripInvalidImage(t *testing.T) {
 		b.Write([]byte{0xFF, 0xD9}) // EOI (won't be reached)
 		var out bytes.Buffer
 
-		err := jpegstrip.Strip(bytes.NewReader(b.Bytes()), &out)
-		if !errors.Is(err, jpegstrip.ErrTruncated) {
+		err := Strip(bytes.NewReader(b.Bytes()), &out)
+		if !errors.Is(err, ErrTruncated) {
 			t.Fatalf("want ErrTruncated for invalid length, got %v", err)
 		}
 	})
@@ -104,8 +104,8 @@ func TestStripInvalidImage(t *testing.T) {
 		// no EOI -> truncated
 
 		var out bytes.Buffer
-		err := jpegstrip.Strip(bytes.NewReader(file), &out)
-		if !errors.Is(err, jpegstrip.ErrTruncated) {
+		err := Strip(bytes.NewReader(file), &out)
+		if !errors.Is(err, ErrTruncated) {
 			t.Fatalf("want ErrTruncated, got %v", err)
 		}
 	})
@@ -122,8 +122,8 @@ func TestStripInvalidImage(t *testing.T) {
 		b.Write([]byte{0x11, 0x22, 0x33, 0x00, 0xFF, 0x00}) // fake scan data (no ending FFD9)
 
 		var out bytes.Buffer
-		err := jpegstrip.Strip(bytes.NewReader(b.Bytes()), &out)
-		if !errors.Is(err, jpegstrip.ErrTruncated) {
+		err := Strip(bytes.NewReader(b.Bytes()), &out)
+		if !errors.Is(err, ErrTruncated) {
 			t.Fatalf("want ErrTruncated when scan doesn't end with EOI, got %v", err)
 		}
 	})
@@ -132,8 +132,8 @@ func TestStripInvalidImage(t *testing.T) {
 		data := []byte{0xFF, 0xD8} // SOI only
 		var out bytes.Buffer
 
-		err := jpegstrip.Strip(bytes.NewReader(data), &out)
-		if !errors.Is(err, jpegstrip.ErrTruncated) {
+		err := Strip(bytes.NewReader(data), &out)
+		if !errors.Is(err, ErrTruncated) {
 			t.Fatalf("want ErrTruncated, got %v", err)
 		}
 	})
