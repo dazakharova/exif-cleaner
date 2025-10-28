@@ -26,4 +26,17 @@ func TestRootHandler(t *testing.T) {
 			t.Fatalf("did not serve index.html")
 		}
 	})
+
+	t.Run("GET /style.css has text/css", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/style.css", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status %d", rec.Code)
+		}
+		if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, "text/css") {
+			t.Fatalf("Content-Type=%q", ct)
+		}
+	})
 }
