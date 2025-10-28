@@ -15,21 +15,39 @@ func TestStripValidImage(t *testing.T) {
 
 	img := makeJPEG(app1, com, dqt, sos)
 
-	t.Run("Remove APP1 and COM", func(t *testing.T) {
-		r := bytes.NewReader(img)
-		var out bytes.Buffer
+	r := bytes.NewReader(img)
+	var out bytes.Buffer
 
-		err := jpegstrip.Strip(r, &out)
-		if err != nil {
-			t.Fatalf("Strip() unexpected error: %v", err)
-		}
-		got := out.Bytes()
+	err := jpegstrip.Strip(r, &out)
+	if err != nil {
+		t.Fatalf("Strip() unexpected error: %v", err)
+	}
+	got := out.Bytes()
 
-		if containsMarker(got, 0xE1) { // APP1
-			t.Fatal("expected APP1 (EXIF) to be removed, but found APP1 marker in output")
+	t.Run("Removes APP1 and COM", func(t *testing.T) {
+		if containsMarker(got, 0xE1) {
+			t.Fatal("APP1 (EXIF) not removed")
 		}
-		if containsMarker(got, 0xFE) { // COM
-			t.Fatal("expected COM to be removed, but found COM marker in output")
+		if containsMarker(got, 0xFE) {
+			t.Fatal("COM marker not removed")
+		}
+	})
+
+	t.Run("Preserves JPEG structure", func(t *testing.T) {
+		if !(len(got) >= 4 &&
+			got[0] == 0xFF && got[1] == 0xD8 &&
+			got[len(got)-2] == 0xFF && got[len(got)-1] == 0xD9) {
+			t.Fatalf("output not bounded by SOI/EOI; head=% X tail=% X", got[:2], got[len(got)-2:])
+		}
+
+		if !containsMarker(got, 0xDB) {
+			t.Fatal("expected DQT (0xDB) to be preserved, but it’s missing")
+		}
+	})
+
+	t.Run("Output is smaller", func(t *testing.T) {
+		if len(got) >= len(img) {
+			t.Errorf("expected stripped image to be smaller; got input=%d, output=%d", len(img), len(got))
 		}
 	})
 }
