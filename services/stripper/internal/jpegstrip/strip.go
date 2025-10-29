@@ -1,15 +1,32 @@
 package jpegstrip
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
+	"strings"
 )
 
 var ErrTruncated = errors.New("truncated or malformed JPEG")
 var ErrNotJPEG = errors.New("not a JPEG (missing SOI)")
 
-func Strip(in io.Reader, out io.Writer) error {
+func MarkerFor(metaType string) (marker byte, prefix []byte) {
+	switch strings.ToLower(strings.TrimSpace(metaType)) {
+	case "exif":
+		return 0xE1, []byte("Exif\x00\x00") // APP1 EXIF
+	case "xmp":
+		return 0xE1, []byte("http://ns.adobe.com/xap/1.0/") // APP1 XMP
+	case "icc":
+		return 0xE2, nil // APP2 ICC
+	case "comment", "com":
+		return 0xFE, nil // COM
+	default:
+		return 0, nil
+	}
+}
+
+func Strip(in io.Reader, out io.Writer, dropMarker byte, dropPrefix []byte) error {
 	var hdr [2]byte
 	_, err := io.ReadFull(in, hdr[:])
 	if err != nil {
@@ -84,9 +101,15 @@ func Strip(in io.Reader, out io.Writer) error {
 
 			return nil
 
-		case 0xE1, 0xFE: // APP1 (EXIF), COM (comments)
-			err := dropSegmentWithLength(in)
-			if err != nil {
+		case dropMarker:
+			if len(dropPrefix) == 0 {
+				if err := dropSegmentWithLength(in); err != nil {
+					return err
+				}
+				continue
+			}
+
+			if err := dropSegmentByPrefix(in, out, dropMarker, dropPrefix); err != nil {
 				return err
 			}
 
@@ -197,4 +220,54 @@ func isNoLengthMarker(marker byte) bool {
 		return true
 	}
 	return false
+}
+
+// Reads one segment and drops it only if the payload begins with the given prefix
+func dropSegmentByPrefix(in io.Reader, out io.Writer, marker byte, dropPrefix []byte) error {
+	var lengthBuf [2]byte
+	if _, err := io.ReadFull(in, lengthBuf[:]); err != nil {
+		return ErrTruncated
+	}
+
+	length := binary.BigEndian.Uint16(lengthBuf[:])
+	if length < 2 {
+		return ErrTruncated
+	}
+
+	payloadLen := int64(length - 2)
+
+	// Read up to len(dropPrefix) bytes for prefix comparison
+	toPeek := int64(len(dropPrefix))
+	if toPeek > payloadLen {
+		toPeek = payloadLen
+	}
+
+	peek := make([]byte, toPeek)
+	if _, err := io.ReadFull(in, peek); err != nil {
+		return ErrTruncated
+	}
+
+	// Drop only if full prefix matches
+	if toPeek == int64(len(dropPrefix)) && bytes.Equal(peek, dropPrefix) {
+		// Discard the rest of the payload
+		if _, err := io.CopyN(io.Discard, in, payloadLen-toPeek); err != nil {
+			return ErrTruncated
+		}
+		return nil
+	}
+
+	// Not a match -> copy entire segment: marker, length, peek, remainder
+	if _, err := out.Write([]byte{0xFF, marker}); err != nil {
+		return err
+	}
+	if _, err := out.Write(lengthBuf[:]); err != nil {
+		return err
+	}
+	if _, err := out.Write(peek); err != nil {
+		return err
+	}
+	if _, err := io.CopyN(out, in, payloadLen-toPeek); err != nil {
+		return ErrTruncated
+	}
+	return nil
 }
