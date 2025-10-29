@@ -40,11 +40,10 @@ func MakeSOS(scan []byte) []byte {
 }
 
 func ContainsMarker(image []byte, marker byte) bool {
-	for i := 0; i < len(image); i++ {
+	for i := 0; i+1 < len(image); i++ {
 		if image[i] == 0xFF && image[i+1] == marker {
 			return true
 		}
 	}
-
 	return false
 }
