@@ -21,3 +21,14 @@ services:
       STRIPPER_URL: "http://stripper:${STRIPPER_PORT:-8080}/strip"
     ports:
       - "${WEBUI_PORT:-3000}:${WEBUI_PORT:-3000}"
+
+  e2e-tests:
+    build:
+      context: ./e2e-tests
+      dockerfile: Dockerfile
+    image: exif-e2e-tests:dev
+    command: [ "/app/e2e-test-runner" ]
+    environment:
+      WEBUI_URL: http://webui:${WEBUI_PORT:-3000}
+      STRIPPER_URL: http://stripper:${STRIPPER_PORT:-8080}
+    restart: "no"
