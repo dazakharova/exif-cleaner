@@ -71,7 +71,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
-	mux.HandleFunc("/healthz", HealthHandler)
+	mux.HandleFunc("/health", HealthHandler)
 	mux.HandleFunc("/strip", StripHandler)
 
 	log.Printf("Server started on port: %s", port)
