@@ -13,4 +13,5 @@ RUN go build -o /e2e-test-runner main.go
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /e2e-test-runner /app/e2e-test-runner
+COPY --from=builder /app/testdata /app/testdata
 ENTRYPOINT ["/app/e2e-test-runner"]
