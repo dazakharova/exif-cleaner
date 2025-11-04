@@ -47,7 +47,7 @@ func waitForService(name, url string, maxAttempts int, delay time.Duration) {
 
 func runAllE2ETests(webuiURL string) {
 
-	err := runner.RunE2ETest(webuiURL, "exif", "./testdata/test_valid.jpg")
+	err := runner.Run(webuiURL)
 	if err != nil {
 		log.Fatal(err)
 	}

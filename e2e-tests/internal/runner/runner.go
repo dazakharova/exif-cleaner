@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -10,8 +11,15 @@ import (
 	"github.com/daria/exif-cleaner/e2e-tests/internal/testutil"
 )
 
-func RunE2ETest(baseURL, metadataType, filename string) error {
-	req, err := httpc.NewUploadRequest(baseURL, metadataType, filename)
+type scenario struct {
+	name       string
+	metaType   string
+	filename   string
+	wantStatus int
+}
+
+func runE2ETest(baseURL string, s scenario) error {
+	req, err := httpc.NewUploadRequest(baseURL, s.metaType, s.filename)
 	if err != nil {
 		return err
 	}
@@ -24,18 +32,36 @@ func RunE2ETest(baseURL, metadataType, filename string) error {
 		return err
 	}
 
-	if resp.StatusCode == http.StatusOK {
+	if resp.StatusCode == s.wantStatus {
 		if err := testutil.VerifyResponseHeaders(resp); err != nil {
-			return fmt.Errorf("Header validation failed: %v", err)
+			return fmt.Errorf("[%s] header validation failed: %v", err)
 		}
 
 		if !testutil.HasValidJPEGStructure(body) {
-			return fmt.Errorf("Invalid JPEG structure: missing SOI/EOI")
+			return fmt.Errorf("[%s] invalid JPEG structure: missing SOI/EOI", s.name)
 		}
 
-		if err := testutil.VerifyStripped(body, metadataType); err != nil {
-			return fmt.Errorf("Strip verification failed: %v", err)
+		if err := testutil.VerifyStripped(body, s.metaType); err != nil {
+			return fmt.Errorf("[%s] strip verification failed: %v", s.name, err)
 		}
+	}
+
+	return nil
+}
+
+func Run(baseUrl string) error {
+	testScenarios := []scenario{
+		{name: "Strip EXIF", metaType: "exif", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK},
+		{name: "Strip ICC", metaType: "icc", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK},
+	}
+
+	for _, s := range testScenarios {
+		err := runE2ETest(baseUrl, s)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("E2E passed: %s", s.name)
 	}
 
 	return nil
