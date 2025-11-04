@@ -51,8 +51,10 @@ func runE2ETest(baseURL string, s scenario) error {
 
 func Run(baseUrl string) error {
 	testScenarios := []scenario{
-		{name: "Strip EXIF", metaType: "exif", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK},
-		{name: "Strip ICC", metaType: "icc", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK},
+		{name: "Strip EXIF metadata", metaType: "exif", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK},
+		{name: "Strip ICC metadata", metaType: "icc", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK},
+		{name: "Strip XMP metadata", metaType: "xmp", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK},
+		{name: "Strip COM metadata", metaType: "com", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK},
 	}
 
 	for _, s := range testScenarios {
