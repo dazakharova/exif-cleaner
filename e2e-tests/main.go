@@ -71,29 +71,10 @@ func formMultipartFile(w *multipart.Writer, filename string) error {
 }
 
 func runEndToEndTests(webuiURL string) {
-	var body bytes.Buffer
-	w := multipart.NewWriter(&body)
-
-	err := formMultipartFile(w, "./testdata/test_valid.jpg")
+	req, err := newUploadRequest(webuiURL, "exif", "./testdata/test_valid.jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	err = w.WriteField("metadataType", "exif")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := w.Close(); err != nil {
-		log.Fatal(err)
-	}
-
-	req, err := http.NewRequest("POST", webuiURL, &body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	client := &http.Client{Timeout: 10 * time.Second}
 
@@ -138,7 +119,7 @@ func main() {
 	waitForService("WebUI", webuiBaseURL+"/health", MaxWaitAttempts, WaitDelay)
 	waitForService("Stripper", stripperBaseURL+"/health", MaxWaitAttempts, WaitDelay)
 
-	runEndToEndTests(webuiBaseURL + "/upload")
+	runEndToEndTests(webuiBaseURL)
 
 	fmt.Printf("Stripper Health Check Complete\n")
 }
@@ -161,4 +142,28 @@ func verifyResponseHeaders(resp *http.Response) error {
 	}
 
 	return nil
+}
+
+func newUploadRequest(baseURL, metaType, filename string) (*http.Request, error) {
+	var body bytes.Buffer
+	w := multipart.NewWriter(&body)
+
+	if err := formMultipartFile(w, filename); err != nil {
+		return nil, err
+	}
+
+	if err := w.WriteField("metadataType", metaType); err != nil {
+		return nil, err
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, baseURL+"/upload", &body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	return req, nil
 }
