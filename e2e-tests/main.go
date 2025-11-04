@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -105,6 +106,12 @@ func runEndToEndTests(webuiURL string) {
 
 	n, _ := io.Copy(io.Discard, resp.Body)
 
+	if err := verifyResponseHeaders(resp); err != nil {
+		log.Fatalf("Header validation failed: %v", err)
+	} else {
+		fmt.Println("Headers verified successfully")
+	}
+
 	log.Printf("Status: %s", resp.Status)
 	log.Printf("Content-Type: %s", resp.Header.Get("Content-Type"))
 	log.Printf("Content-Disposition: %s", resp.Header.Get("Content-Disposition"))
@@ -132,4 +139,24 @@ func main() {
 	runEndToEndTests(webuiBaseURL + "/upload")
 
 	fmt.Printf("Stripper Health Check Complete\n")
+}
+
+func verifyResponseHeaders(resp *http.Response) error {
+	if ct := resp.Header.Get("Content-Type"); ct != "image/jpeg" {
+		return fmt.Errorf("unexpected Content-Type: %s", ct)
+	}
+
+	cd := resp.Header.Get("Content-Disposition")
+	if cd == "" {
+		return fmt.Errorf("missing Content-Disposition header")
+	}
+	if !strings.Contains(cd, `filename="cleaned.jpg"`) {
+		return fmt.Errorf("unexpected Content-Disposition filename: %q", cd)
+	}
+
+	if cc := resp.Header.Get("Cache-Control"); cc == "" {
+		return fmt.Errorf("missing Cache-Control header")
+	}
+
+	return nil
 }
