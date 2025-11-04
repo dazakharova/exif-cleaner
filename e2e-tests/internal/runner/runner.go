@@ -12,10 +12,11 @@ import (
 )
 
 type scenario struct {
-	name       string
-	metaType   string
-	filename   string
-	wantStatus int
+	name           string
+	metaType       string
+	filename       string
+	wantStatus     int
+	shouldValidate bool
 }
 
 func runE2ETest(baseURL string, s scenario) error {
@@ -32,18 +33,30 @@ func runE2ETest(baseURL string, s scenario) error {
 		return err
 	}
 
-	if resp.StatusCode == s.wantStatus {
-		if err := testutil.VerifyResponseHeaders(resp); err != nil {
-			return fmt.Errorf("[%s] header validation failed: %v", err)
-		}
+	if resp.StatusCode != s.wantStatus {
+		return fmt.Errorf("[%s] wrong status: got %d, want %d", s.name, resp.StatusCode, s.wantStatus)
+	}
 
-		if !testutil.HasValidJPEGStructure(body) {
-			return fmt.Errorf("[%s] invalid JPEG structure: missing SOI/EOI", s.name)
+	if !s.shouldValidate {
+		if err := validateHappyPath(s, resp, body); err != nil {
+			return fmt.Errorf("[%s] validation failed: %w", s.name, err)
 		}
+	}
 
-		if err := testutil.VerifyStripped(body, s.metaType); err != nil {
-			return fmt.Errorf("[%s] strip verification failed: %v", s.name, err)
-		}
+	return nil
+}
+
+func validateHappyPath(s scenario, resp *http.Response, body []byte) error {
+	if err := testutil.VerifyResponseHeaders(resp); err != nil {
+		return fmt.Errorf("[%s] header validation failed: %v", err)
+	}
+
+	if !testutil.HasValidJPEGStructure(body) {
+		return fmt.Errorf("[%s] invalid JPEG structure: missing SOI/EOI", s.name)
+	}
+
+	if err := testutil.VerifyStripped(body, s.metaType); err != nil {
+		return fmt.Errorf("[%s] strip verification failed: %v", s.name, err)
 	}
 
 	return nil
@@ -51,10 +64,10 @@ func runE2ETest(baseURL string, s scenario) error {
 
 func Run(baseUrl string) error {
 	testScenarios := []scenario{
-		{name: "Strip EXIF metadata", metaType: "exif", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK},
-		{name: "Strip ICC metadata", metaType: "icc", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK},
-		{name: "Strip XMP metadata", metaType: "xmp", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK},
-		{name: "Strip COM metadata", metaType: "com", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK},
+		{name: "Strip EXIF metadata", metaType: "exif", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
+		{name: "Strip ICC metadata", metaType: "icc", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
+		{name: "Strip XMP metadata", metaType: "xmp", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
+		{name: "Strip COM metadata", metaType: "com", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
 	}
 
 	for _, s := range testScenarios {
