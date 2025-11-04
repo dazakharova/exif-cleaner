@@ -104,19 +104,20 @@ func runEndToEndTests(webuiURL string) {
 	}
 	defer resp.Body.Close()
 
-	n, _ := io.Copy(io.Discard, resp.Body)
+	respBody, _ := io.ReadAll(resp.Body)
 
 	if err := verifyResponseHeaders(resp); err != nil {
 		log.Fatalf("Header validation failed: %v", err)
-	} else {
-		fmt.Println("Headers verified successfully")
+	}
+
+	if !hasValidJPEGStructure(respBody) {
+		log.Fatalf("Invalid JPEG structure: missing SOI/EOI")
 	}
 
 	log.Printf("Status: %s", resp.Status)
 	log.Printf("Content-Type: %s", resp.Header.Get("Content-Type"))
 	log.Printf("Content-Disposition: %s", resp.Header.Get("Content-Disposition"))
 	log.Printf("Cache-Control: %s", resp.Header.Get("Cache-Control"))
-	log.Printf("Response size: %d bytes", n)
 
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("Unexpected status %d from WebUI", resp.StatusCode)
@@ -159,4 +160,10 @@ func verifyResponseHeaders(resp *http.Response) error {
 	}
 
 	return nil
+}
+
+func hasValidJPEGStructure(data []byte) bool {
+	return len(data) >= 4 &&
+		data[0] == 0xFF && data[1] == 0xD8 && // SOI
+		data[len(data)-2] == 0xFF && data[len(data)-1] == 0xD9 // EOI
 }
