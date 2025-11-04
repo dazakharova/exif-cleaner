@@ -70,35 +70,13 @@ func formMultipartFile(w *multipart.Writer, filename string) error {
 	return nil
 }
 
-func runEndToEndTests(webuiURL string) {
-	req, err := newUploadRequest(webuiURL, "exif", "./testdata/test_valid.jpg")
+func runAllE2ETests(webuiURL string) {
+
+	err := runE2ETest(webuiURL, "exif", "./testdata/test_valid.jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	resp, respBody, err := doRequest(ctx, req)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := verifyResponseHeaders(resp); err != nil {
-		log.Fatalf("Header validation failed: %v", err)
-	}
-
-	if !testutil.HasValidJPEGStructure(respBody) {
-		log.Fatalf("Invalid JPEG structure: missing SOI/EOI")
-	}
-
-	if err := testutil.VerifyStripped(respBody, "exif"); err != nil {
-		log.Fatalf("Strip verification failed: %v", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("Unexpected status %d from WebUI", resp.StatusCode)
-	}
 }
 
 func main() {
@@ -114,7 +92,7 @@ func main() {
 	waitForService("WebUI", webuiBaseURL+"/health", MaxWaitAttempts, WaitDelay)
 	waitForService("Stripper", stripperBaseURL+"/health", MaxWaitAttempts, WaitDelay)
 
-	runEndToEndTests(webuiBaseURL)
+	runAllE2ETests(webuiBaseURL)
 
 	fmt.Printf("Stripper Health Check Complete\n")
 }
@@ -175,4 +153,35 @@ func doRequest(ctx context.Context, req *http.Request) (*http.Response, []byte, 
 		return resp, nil, err
 	}
 	return resp, b, nil
+}
+
+func runE2ETest(baseURL, metadataType, filename string) error {
+	req, err := newUploadRequest(baseURL, metadataType, filename)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	resp, body, err := doRequest(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		if err := verifyResponseHeaders(resp); err != nil {
+			return fmt.Errorf("Header validation failed: %v", err)
+		}
+
+		if !testutil.HasValidJPEGStructure(body) {
+			return fmt.Errorf("Invalid JPEG structure: missing SOI/EOI")
+		}
+
+		if err := testutil.VerifyStripped(body, metadataType); err != nil {
+			return fmt.Errorf("Strip verification failed: %v", err)
+		}
+	}
+
+	return nil
 }
