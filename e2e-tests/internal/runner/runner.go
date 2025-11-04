@@ -37,7 +37,7 @@ func runE2ETest(baseURL string, s scenario) error {
 		return fmt.Errorf("[%s] wrong status: got %d, want %d", s.name, resp.StatusCode, s.wantStatus)
 	}
 
-	if !s.shouldValidate {
+	if s.shouldValidate {
 		if err := validateHappyPath(s, resp, body); err != nil {
 			return fmt.Errorf("[%s] validation failed: %w", s.name, err)
 		}
@@ -68,6 +68,10 @@ func Run(baseUrl string) error {
 		{name: "Strip ICC metadata", metaType: "icc", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
 		{name: "Strip XMP metadata", metaType: "xmp", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
 		{name: "Strip COM metadata", metaType: "com", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
+
+		// Error paths
+		{name: "Reject PNG via WebUI", metaType: "exif", filename: "./testdata/not_jpeg.png", wantStatus: http.StatusBadGateway, shouldValidate: false},
+		{name: "Reject truncated JPEG", metaType: "exif", filename: "./testdata/truncated_jpeg.jpg", wantStatus: http.StatusBadGateway, shouldValidate: false},
 	}
 
 	for _, s := range testScenarios {
