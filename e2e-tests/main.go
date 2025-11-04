@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/daria/exif-cleaner/e2e-tests/internal/testutil"
 )
 
 const (
@@ -114,6 +116,10 @@ func runEndToEndTests(webuiURL string) {
 		log.Fatalf("Invalid JPEG structure: missing SOI/EOI")
 	}
 
+	if err := verifyStripped(respBody, "exif"); err != nil {
+		log.Fatalf("Strip verification failed: %v", err)
+	}
+
 	log.Printf("Status: %s", resp.Status)
 	log.Printf("Content-Type: %s", resp.Header.Get("Content-Type"))
 	log.Printf("Content-Disposition: %s", resp.Header.Get("Content-Disposition"))
@@ -166,4 +172,35 @@ func hasValidJPEGStructure(data []byte) bool {
 	return len(data) >= 4 &&
 		data[0] == 0xFF && data[1] == 0xD8 && // SOI
 		data[len(data)-2] == 0xFF && data[len(data)-1] == 0xD9 // EOI
+}
+
+func verifyStripped(respBody []byte, metadataType string) error {
+	mt := strings.ToLower(strings.TrimSpace(metadataType))
+
+	switch mt {
+	case "exif":
+		// EXIF = APP1 with "Exif\x00\x00" prefix
+		if bytes.Contains(respBody, []byte("Exif\x00\x00")) {
+			return fmt.Errorf("EXIF prefix still present in output")
+		}
+	case "xmp":
+		// XMP = APP1 with XMP namespace prefix
+		if bytes.Contains(respBody, []byte("http://ns.adobe.com/xap/1.0/")) {
+			return fmt.Errorf("XMP prefix still present in output")
+		}
+	case "icc":
+		// ICC = APP2 (0xE2) with "ICC_PROFILE\x00" prefix
+		if bytes.Contains(respBody, []byte("ICC_PROFILE\x00")) || testutil.ContainsMarker(respBody, 0xE2) {
+			return fmt.Errorf("ICC profile still present in output")
+		}
+	case "comment", "com":
+		// COM marker
+		if testutil.ContainsMarker(respBody, 0xFE) {
+			return fmt.Errorf("COM marker still present in output")
+		}
+	default:
+		return fmt.Errorf("unsupported metadataType %q", metadataType)
+	}
+
+	return nil
 }
