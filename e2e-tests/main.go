@@ -76,18 +76,13 @@ func runEndToEndTests(webuiURL string) {
 		log.Fatal(err)
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	resp, err := client.Do(req.WithContext(ctx))
+	resp, respBody, err := doRequest(ctx, req)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer resp.Body.Close()
-
-	respBody, _ := io.ReadAll(resp.Body)
 
 	if err := verifyResponseHeaders(resp); err != nil {
 		log.Fatalf("Header validation failed: %v", err)
@@ -166,4 +161,18 @@ func newUploadRequest(baseURL, metaType, filename string) (*http.Request, error)
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	return req, nil
+}
+
+func doRequest(ctx context.Context, req *http.Request) (*http.Response, []byte, error) {
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req.WithContext(ctx))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return resp, nil, err
+	}
+	return resp, b, nil
 }
