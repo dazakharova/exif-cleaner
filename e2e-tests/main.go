@@ -120,11 +120,6 @@ func runEndToEndTests(webuiURL string) {
 		log.Fatalf("Strip verification failed: %v", err)
 	}
 
-	log.Printf("Status: %s", resp.Status)
-	log.Printf("Content-Type: %s", resp.Header.Get("Content-Type"))
-	log.Printf("Content-Disposition: %s", resp.Header.Get("Content-Disposition"))
-	log.Printf("Cache-Control: %s", resp.Header.Get("Cache-Control"))
-
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("Unexpected status %d from WebUI", resp.StatusCode)
 	}
