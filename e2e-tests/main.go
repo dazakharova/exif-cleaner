@@ -1,19 +1,13 @@
 package main
 
 import (
-	"bytes"
-	"context"
 	"fmt"
-	"io"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/daria/exif-cleaner/e2e-tests/internal/testutil"
+	"github.com/daria/exif-cleaner/e2e-tests/internal/runner"
 )
 
 const (
@@ -51,28 +45,9 @@ func waitForService(name, url string, maxAttempts int, delay time.Duration) {
 	log.Fatalf("FATAL: %s service failed to become ready after %d attempts.", name, maxAttempts)
 }
 
-func formMultipartFile(w *multipart.Writer, filename string) error {
-	f, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	fileWriter, err := w.CreateFormFile("file", filepath.Base(filename))
-	if err != nil {
-		return err
-	}
-
-	if _, err := io.Copy(fileWriter, f); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func runAllE2ETests(webuiURL string) {
 
-	err := runE2ETest(webuiURL, "exif", "./testdata/test_valid.jpg")
+	err := runner.RunE2ETest(webuiURL, "exif", "./testdata/test_valid.jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,93 +70,4 @@ func main() {
 	runAllE2ETests(webuiBaseURL)
 
 	fmt.Printf("Stripper Health Check Complete\n")
-}
-
-func verifyResponseHeaders(resp *http.Response) error {
-	if ct := resp.Header.Get("Content-Type"); ct != "image/jpeg" {
-		return fmt.Errorf("unexpected Content-Type: %s", ct)
-	}
-
-	cd := resp.Header.Get("Content-Disposition")
-	if cd == "" {
-		return fmt.Errorf("missing Content-Disposition header")
-	}
-	if !strings.Contains(cd, `filename="cleaned.jpg"`) {
-		return fmt.Errorf("unexpected Content-Disposition filename: %q", cd)
-	}
-
-	if cc := resp.Header.Get("Cache-Control"); cc == "" {
-		return fmt.Errorf("missing Cache-Control header")
-	}
-
-	return nil
-}
-
-func newUploadRequest(baseURL, metaType, filename string) (*http.Request, error) {
-	var body bytes.Buffer
-	w := multipart.NewWriter(&body)
-
-	if err := formMultipartFile(w, filename); err != nil {
-		return nil, err
-	}
-
-	if err := w.WriteField("metadataType", metaType); err != nil {
-		return nil, err
-	}
-	if err := w.Close(); err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, baseURL+"/upload", &body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
-	return req, nil
-}
-
-func doRequest(ctx context.Context, req *http.Request) (*http.Response, []byte, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req.WithContext(ctx))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return resp, nil, err
-	}
-	return resp, b, nil
-}
-
-func runE2ETest(baseURL, metadataType, filename string) error {
-	req, err := newUploadRequest(baseURL, metadataType, filename)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	resp, body, err := doRequest(ctx, req)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode == http.StatusOK {
-		if err := verifyResponseHeaders(resp); err != nil {
-			return fmt.Errorf("Header validation failed: %v", err)
-		}
-
-		if !testutil.HasValidJPEGStructure(body) {
-			return fmt.Errorf("Invalid JPEG structure: missing SOI/EOI")
-		}
-
-		if err := testutil.VerifyStripped(body, metadataType); err != nil {
-			return fmt.Errorf("Strip verification failed: %v", err)
-		}
-	}
-
-	return nil
 }

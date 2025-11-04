@@ -3,6 +3,7 @@ package testutil
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"strings"
 )
 
@@ -47,6 +48,26 @@ func VerifyStripped(respBody []byte, metadataType string) error {
 		}
 	default:
 		return fmt.Errorf("unsupported metadataType %q", metadataType)
+	}
+
+	return nil
+}
+
+func VerifyResponseHeaders(resp *http.Response) error {
+	if ct := resp.Header.Get("Content-Type"); ct != "image/jpeg" {
+		return fmt.Errorf("unexpected Content-Type: %s", ct)
+	}
+
+	cd := resp.Header.Get("Content-Disposition")
+	if cd == "" {
+		return fmt.Errorf("missing Content-Disposition header")
+	}
+	if !strings.Contains(cd, `filename="cleaned.jpg"`) {
+		return fmt.Errorf("unexpected Content-Disposition filename: %q", cd)
+	}
+
+	if cc := resp.Header.Get("Cache-Control"); cc == "" {
+		return fmt.Errorf("missing Cache-Control header")
 	}
 
 	return nil
