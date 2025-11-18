@@ -26,7 +26,7 @@ func MarkerFor(metaType string) (marker byte, prefix []byte) {
 	}
 }
 
-func Strip(in io.Reader, out io.Writer, dropMarker byte, dropPrefix []byte) error {
+func Strip(in io.Reader, out io.Writer, metadataRules map[byte][]byte) error {
 	var hdr [2]byte
 	_, err := io.ReadFull(in, hdr[:])
 	if err != nil {
@@ -101,21 +101,23 @@ func Strip(in io.Reader, out io.Writer, dropMarker byte, dropPrefix []byte) erro
 
 			return nil
 
-		case dropMarker:
-			if len(dropPrefix) == 0 {
-				if err := dropSegmentWithLength(in); err != nil {
+		default:
+			prefix, ok := metadataRules[marker]
+			if ok {
+				if len(prefix) == 0 {
+					if err := dropSegmentWithLength(in); err != nil {
+						return err
+					}
+					continue
+				}
+
+				if err := dropSegmentByPrefix(in, out, marker, prefix); err != nil {
 					return err
 				}
+
 				continue
 			}
 
-			if err := dropSegmentByPrefix(in, out, dropMarker, dropPrefix); err != nil {
-				return err
-			}
-
-			continue
-
-		default:
 			if isNoLengthMarker(marker) {
 				_, err := out.Write([]byte{0xFF, marker})
 				if err != nil {

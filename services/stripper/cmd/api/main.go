@@ -44,13 +44,22 @@ func StripHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metadataType := r.URL.Query().Get("metadataType")
-	dropMarker, prefix := jpegstrip.MarkerFor(metadataType)
+	q := r.URL.Query()
+	metadataTypes := q["metadataType"]
+
+	metadataRules := make(map[byte][]byte, len(metadataTypes))
+
+	for _, t := range metadataTypes {
+		marker, prefix := jpegstrip.MarkerFor(t)
+		if marker != 0 {
+			metadataRules[marker] = prefix
+		}
+	}
 
 	fullReader := io.MultiReader(bytes.NewReader(header[:n]), r.Body)
 
 	var buf bytes.Buffer
-	if err := jpegstrip.Strip(fullReader, &buf, dropMarker, prefix); err != nil {
+	if err := jpegstrip.Strip(fullReader, &buf, metadataRules); err != nil {
 		http.Error(w, "failed to process JPEG", http.StatusBadRequest)
 		return
 	}
