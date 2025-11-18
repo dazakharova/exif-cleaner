@@ -39,16 +39,30 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	metadataType := r.FormValue("metadataType")
+	metadataTypes := r.Form["metadataType"]
+
+	if len(metadataTypes) == 0 {
+		metadataTypes = []string{"EXIF"} // default
+	}
 
 	stripperURL := os.Getenv("STRIPPER_URL")
 	if stripperURL == "" {
 		stripperURL = "http://localhost:8080/strip"
 	}
 
-	if metadataType != "" {
-		stripperURL = fmt.Sprintf("%s?metadataType=%s", stripperURL, url.QueryEscape(metadataType))
+	u, err := url.Parse(stripperURL)
+	if err != nil {
+		http.Error(w, "invalid stripper URL", http.StatusInternalServerError)
+		return
 	}
+
+	q := u.Query()
+	for _, mt := range metadataTypes {
+		q.Add("metadataType", mt)
+	}
+	u.RawQuery = q.Encode()
+
+	stripperURL = u.String()
 
 	req, err := http.NewRequest(r.Method, stripperURL, file)
 	if err != nil {
