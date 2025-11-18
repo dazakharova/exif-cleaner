@@ -2,9 +2,9 @@ package runner
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
+	"testing"
 	"time"
 
 	"github.com/daria/exif-cleaner/e2e-tests/internal/httpc"
@@ -19,10 +19,12 @@ type scenario struct {
 	shouldValidate bool
 }
 
-func runE2ETest(baseURL string, s scenario) error {
+func runTestScenario(t *testing.T, baseURL string, s scenario) {
+	t.Helper()
+
 	req, err := httpc.NewUploadRequest(baseURL, s.metaType, s.filename)
 	if err != nil {
-		return err
+		t.Fatalf("failed to create request: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -30,39 +32,42 @@ func runE2ETest(baseURL string, s scenario) error {
 
 	resp, body, err := httpc.DoRequest(ctx, req)
 	if err != nil {
-		return err
+		t.Fatalf("request failed: %v", err)
 	}
 
 	if resp.StatusCode != s.wantStatus {
-		return fmt.Errorf("[%s] wrong status: got %d, want %d", s.name, resp.StatusCode, s.wantStatus)
+		t.Fatalf("[%s] wrong status: got %d, want %d", s.name, resp.StatusCode, s.wantStatus)
 	}
 
-	if s.shouldValidate {
-		if err := validateHappyPath(s, resp, body); err != nil {
-			return fmt.Errorf("[%s] validation failed: %w", s.name, err)
-		}
+	if !s.shouldValidate {
+		return
 	}
 
-	return nil
+	validateHappyPath(t, s, resp, body)
+
+	return
 }
 
-func validateHappyPath(s scenario, resp *http.Response, body []byte) error {
+func validateHappyPath(t *testing.T, s scenario, resp *http.Response, body []byte) {
+	t.Helper()
 	if err := testutil.VerifyResponseHeaders(resp); err != nil {
-		return fmt.Errorf("[%s] header validation failed: %v", err)
+		t.Fatalf("[%s] header validation failed: %v", s.name, err)
 	}
 
 	if !testutil.HasValidJPEGStructure(body) {
-		return fmt.Errorf("[%s] invalid JPEG structure: missing SOI/EOI", s.name)
+		t.Fatalf("[%s] invalid JPEG structure: missing SOI/EOI", s.name)
 	}
 
 	if err := testutil.VerifyStripped(body, s.metaType); err != nil {
-		return fmt.Errorf("[%s] strip verification failed: %v", s.name, err)
+		t.Fatalf("[%s] strip verification failed: %v", s.name, err)
 	}
 
-	return nil
+	return
 }
 
-func Run(baseUrl string) error {
+func Run(t *testing.T, baseURL string) {
+	t.Helper()
+
 	testScenarios := []scenario{
 		{name: "Strip EXIF metadata", metaType: "exif", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
 		{name: "Strip ICC metadata", metaType: "icc", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
@@ -75,13 +80,10 @@ func Run(baseUrl string) error {
 	}
 
 	for _, s := range testScenarios {
-		err := runE2ETest(baseUrl, s)
-		if err != nil {
-			return err
-		}
+		t.Run(s.name, func(t *testing.T) {
+			runTestScenario(t, baseURL, s)
+		})
 
 		log.Printf("E2E passed: %s", s.name)
 	}
-
-	return nil
 }
