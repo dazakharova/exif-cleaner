@@ -11,11 +11,6 @@ import (
 	"github.com/daria/exif-cleaner/services/stripper/internal/jpegstrip"
 )
 
-func RootHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello World"))
-}
-
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -79,7 +74,6 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", RootHandler)
 	mux.HandleFunc("/health", HealthHandler)
 	mux.HandleFunc("/strip", StripHandler)
 
