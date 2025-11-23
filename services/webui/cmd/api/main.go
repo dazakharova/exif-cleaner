@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 )
 
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
@@ -100,9 +101,16 @@ func main() {
 	mux.Handle("/", http.FileServer(http.Dir("./public")))
 	mux.HandleFunc("POST /upload", UploadHandler)
 
+	srv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      mux,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
 	log.Printf("Server started on port: %s", port)
-	err := http.ListenAndServe(":"+port, mux)
-	if err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
