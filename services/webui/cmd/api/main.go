@@ -10,22 +10,12 @@ import (
 )
 
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status":"ok"}`))
 }
 
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
 		http.Error(w, "failed to parse form or file too large", http.StatusBadRequest)
@@ -106,9 +96,9 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", HealthHandler)
+	mux.HandleFunc("GET /health", HealthHandler)
 	mux.Handle("/", http.FileServer(http.Dir("./public")))
-	mux.HandleFunc("/upload", UploadHandler)
+	mux.HandleFunc("POST /upload", UploadHandler)
 
 	log.Printf("Server started on port: %s", port)
 	err := http.ListenAndServe(":"+port, mux)
