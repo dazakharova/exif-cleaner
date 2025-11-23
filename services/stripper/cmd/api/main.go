@@ -18,11 +18,6 @@ func HealthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func StripHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
 	defer r.Body.Close()
 
@@ -74,8 +69,8 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", HealthHandler)
-	mux.HandleFunc("/strip", StripHandler)
+	mux.HandleFunc("GET /health", HealthHandler)
+	mux.HandleFunc("POST /strip", StripHandler)
 
 	log.Printf("Server started on port: %s", port)
 	err := http.ListenAndServe(":"+port, mux)
