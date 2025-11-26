@@ -27,7 +27,6 @@ services:
       context: ./e2e-tests
       dockerfile: Dockerfile
     image: exif-e2e-tests:dev
-    command: [ "/app/e2e-test-runner" ]
     environment:
       WEBUI_URL: http://webui:${WEBUI_PORT:-3000}
     restart: "no"
