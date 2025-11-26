@@ -10,7 +10,7 @@ COPY . .
 RUN go build -ldflags='-s' -o /out/webui ./cmd/api
 
 # Runtime stage
-FROM alpine:3.21 AS final
+FROM scratch AS final
 WORKDIR /app
 COPY --from=builder --chown=1000:1000 /out/webui /app/webui
 USER 1000:1000
