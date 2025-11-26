@@ -2,7 +2,6 @@ package runner
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -83,7 +82,5 @@ func Run(t *testing.T, baseURL string) {
 		t.Run(s.name, func(t *testing.T) {
 			runTestScenario(t, baseURL, s)
 		})
-
-		log.Printf("E2E passed: %s", s.name)
 	}
 }
