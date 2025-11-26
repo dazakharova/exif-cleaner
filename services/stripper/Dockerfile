@@ -7,10 +7,11 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o /out/stripper ./cmd/api
+RUN go build -ldflags='-s' -o /out/stripper ./cmd/api
 
 # Runtime stage
-FROM alpine:3.21 AS final
-COPY --from=builder /out/stripper /stripper
+FROM scratch AS final
+COPY --from=builder --chown=1000:1000 /out/stripper /stripper
+USER 1000:1000
 EXPOSE 8080
 ENTRYPOINT ["/stripper"]
