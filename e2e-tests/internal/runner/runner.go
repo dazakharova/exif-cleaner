@@ -38,13 +38,9 @@ func runTestScenario(t *testing.T, baseURL string, s scenario) {
 		t.Fatalf("[%s] wrong status: got %d, want %d", s.name, resp.StatusCode, s.wantStatus)
 	}
 
-	if !s.shouldValidate {
-		return
+	if s.shouldValidate {
+		validateHappyPath(t, s, resp, body)
 	}
-
-	validateHappyPath(t, s, resp, body)
-
-	return
 }
 
 func validateHappyPath(t *testing.T, s scenario, resp *http.Response, body []byte) {
@@ -60,8 +56,6 @@ func validateHappyPath(t *testing.T, s scenario, resp *http.Response, body []byt
 	if err := testutil.VerifyStripped(body, s.metaType); err != nil {
 		t.Fatalf("[%s] strip verification failed: %v", s.name, err)
 	}
-
-	return
 }
 
 func Run(t *testing.T, baseURL string) {
