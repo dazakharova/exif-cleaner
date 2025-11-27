@@ -69,6 +69,8 @@ func Run(t *testing.T, baseURL string) {
 		{name: "Strip ICC metadata", metaTypes: []string{"icc"}, filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
 		{name: "Strip XMP metadata", metaTypes: []string{"xmp"}, filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
 		{name: "Strip COM metadata", metaTypes: []string{"com"}, filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
+		{name: "Strip EXIF and ICC metadata", metaTypes: []string{"exif", "icc"}, filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
+		{name: "Strip EXIF, ICC and COM metadata", metaTypes: []string{"exif", "icc", "com"}, filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
 
 		// Error paths
 		{name: "Reject PNG via WebUI", metaTypes: []string{"exif"}, filename: "./testdata/not_jpeg.png", wantStatus: http.StatusBadGateway, shouldValidate: false},
