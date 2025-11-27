@@ -30,7 +30,7 @@ func formMultipartFile(w *multipart.Writer, filename string) error {
 	return nil
 }
 
-func NewUploadRequest(baseURL, metaType, filename string) (*http.Request, error) {
+func NewUploadRequest(baseURL string, metaTypes []string, filename string) (*http.Request, error) {
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
 
@@ -38,9 +38,12 @@ func NewUploadRequest(baseURL, metaType, filename string) (*http.Request, error)
 		return nil, err
 	}
 
-	if err := w.WriteField("metadataType", metaType); err != nil {
-		return nil, err
+	for _, mt := range metaTypes {
+		if err := w.WriteField("metadataType", mt); err != nil {
+			return nil, err
+		}
 	}
+	
 	if err := w.Close(); err != nil {
 		return nil, err
 	}

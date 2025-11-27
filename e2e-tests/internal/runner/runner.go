@@ -12,7 +12,7 @@ import (
 
 type scenario struct {
 	name           string
-	metaType       string
+	metaTypes      []string
 	filename       string
 	wantStatus     int
 	shouldValidate bool
@@ -21,7 +21,7 @@ type scenario struct {
 func runTestScenario(t *testing.T, baseURL string, s scenario) {
 	t.Helper()
 
-	req, err := httpc.NewUploadRequest(baseURL, s.metaType, s.filename)
+	req, err := httpc.NewUploadRequest(baseURL, s.metaTypes, s.filename)
 	if err != nil {
 		t.Fatalf("failed to create request: %v", err)
 	}
@@ -53,23 +53,26 @@ func validateHappyPath(t *testing.T, s scenario, resp *http.Response, body []byt
 		t.Fatalf("[%s] invalid JPEG structure: missing SOI/EOI", s.name)
 	}
 
-	if err := testutil.VerifyStripped(body, s.metaType); err != nil {
-		t.Fatalf("[%s] strip verification failed: %v", s.name, err)
+	for _, mt := range s.metaTypes {
+		if err := testutil.VerifyStripped(body, mt); err != nil {
+			t.Fatalf("[%s] strip verification failed: %v", s.name, err)
+		}
 	}
+
 }
 
 func Run(t *testing.T, baseURL string) {
 	t.Helper()
 
 	testScenarios := []scenario{
-		{name: "Strip EXIF metadata", metaType: "exif", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
-		{name: "Strip ICC metadata", metaType: "icc", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
-		{name: "Strip XMP metadata", metaType: "xmp", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
-		{name: "Strip COM metadata", metaType: "com", filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
+		{name: "Strip EXIF metadata", metaTypes: []string{"exif"}, filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
+		{name: "Strip ICC metadata", metaTypes: []string{"icc"}, filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
+		{name: "Strip XMP metadata", metaTypes: []string{"xmp"}, filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
+		{name: "Strip COM metadata", metaTypes: []string{"com"}, filename: "./testdata/test_valid.jpg", wantStatus: http.StatusOK, shouldValidate: true},
 
 		// Error paths
-		{name: "Reject PNG via WebUI", metaType: "exif", filename: "./testdata/not_jpeg.png", wantStatus: http.StatusBadGateway, shouldValidate: false},
-		{name: "Reject truncated JPEG", metaType: "exif", filename: "./testdata/truncated_jpeg.jpg", wantStatus: http.StatusBadGateway, shouldValidate: false},
+		{name: "Reject PNG via WebUI", metaTypes: []string{"exif"}, filename: "./testdata/not_jpeg.png", wantStatus: http.StatusBadGateway, shouldValidate: false},
+		{name: "Reject truncated JPEG", metaTypes: []string{"exif"}, filename: "./testdata/truncated_jpeg.jpg", wantStatus: http.StatusBadGateway, shouldValidate: false},
 	}
 
 	for _, s := range testScenarios {
