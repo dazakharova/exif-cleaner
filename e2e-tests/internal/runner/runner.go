@@ -53,12 +53,13 @@ func validateHappyPath(t *testing.T, s scenario, resp *http.Response, body []byt
 		t.Fatalf("[%s] invalid JPEG structure: missing SOI/EOI", s.name)
 	}
 
-	for _, mt := range s.metaTypes {
-		if err := testutil.VerifyStripped(body, mt); err != nil {
-			t.Fatalf("[%s] strip verification failed: %v", s.name, err)
-		}
+	if err := testutil.VerifyStripped(body, s.metaTypes); err != nil {
+		t.Fatalf("[%s] strip verification failed: %v", s.name, err)
 	}
 
+	if err := testutil.VerifyPreserved(body, s.metaTypes); err != nil {
+		t.Fatalf("[%s] preservation verification failed: %v", s.name, err)
+	}
 }
 
 func Run(t *testing.T, baseURL string) {
