@@ -76,6 +76,8 @@ func Run(t *testing.T, baseURL string) {
 		// Error paths
 		{name: "Reject PNG via WebUI", metaTypes: []string{"exif"}, filename: "./testdata/not_jpeg.png", wantStatus: http.StatusBadGateway, shouldValidate: false},
 		{name: "Reject truncated JPEG", metaTypes: []string{"exif"}, filename: "./testdata/truncated_jpeg.jpg", wantStatus: http.StatusBadGateway, shouldValidate: false},
+		{name: "Reject empty JPEG", metaTypes: []string{"xmp"}, filename: "./testdata/empty_jpeg.jpg", wantStatus: http.StatusBadGateway, shouldValidate: false},
+		{name: "Reject too large JPEG", metaTypes: []string{"exif"}, filename: "./testdata/big_jpeg.jpg", wantStatus: http.StatusRequestEntityTooLarge, shouldValidate: false},
 	}
 
 	for _, s := range testScenarios {
