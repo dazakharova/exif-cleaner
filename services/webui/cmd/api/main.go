@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -90,10 +91,40 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func runHealthcheck(port string) {
+	url := "http://localhost:" + port + "/health"
+
+	client := &http.Client{
+		Timeout: 2 * time.Second,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		log.Printf("healthcheck request failed: %v", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("unhealthy status: %s", resp.Status)
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
 func main() {
+	var healthcheck = flag.Bool("healthcheck", false, "run healthcheck and exit")
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
+	}
+
+	flag.Parse()
+
+	if *healthcheck {
+		runHealthcheck(port)
 	}
 
 	mux := http.NewServeMux()
