@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const maxUploadSize = 10 << 20
+
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -18,8 +20,16 @@ func HealthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+
 	err := r.ParseMultipartForm(10 << 20)
+
 	if err != nil {
+		if err.Error() == "http: request body too large" {
+			http.Error(w, "file too large (max 20MB)", http.StatusRequestEntityTooLarge) // 413
+			return
+		}
+
 		http.Error(w, "failed to parse form or file too large", http.StatusBadRequest)
 		return
 	}
