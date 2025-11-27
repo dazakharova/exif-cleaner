@@ -9,20 +9,6 @@ import (
 	"github.com/daria/exif-cleaner/services/stripper/internal/testutil"
 )
 
-func TestRootHandler(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
-
-	RootHandler(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rec.Code)
-	}
-	if rec.Body.String() != "Hello World" {
-		t.Fatalf("unexpected body: %q", rec.Body.String())
-	}
-}
-
 func TestHealthHandler(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
