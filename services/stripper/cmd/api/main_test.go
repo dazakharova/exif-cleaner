@@ -37,7 +37,10 @@ func TestStripHandler(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/strip", bytes.NewReader(jpeg))
 		rec := httptest.NewRecorder()
 
-		StripHandler(rec, req)
+		mux := http.NewServeMux()
+		mux.HandleFunc("POST /strip", StripHandler)
+
+		mux.ServeHTTP(rec, req)
 
 		if rec.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d", rec.Code)
@@ -56,7 +59,10 @@ func TestStripHandler(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/strip", bytes.NewReader(jpeg))
 		rec := httptest.NewRecorder()
 
-		StripHandler(rec, req)
+		mux := http.NewServeMux()
+		mux.HandleFunc("POST /strip", StripHandler)
+
+		mux.ServeHTTP(rec, req)
 
 		if rec.Code != http.StatusMethodNotAllowed {
 			t.Fatalf("expected 405, got %d", rec.Code)
@@ -77,7 +83,10 @@ func TestStripHandler(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/strip", bytes.NewReader(b.Bytes()))
 		rec := httptest.NewRecorder()
 
-		StripHandler(rec, req)
+		mux := http.NewServeMux()
+		mux.HandleFunc("POST /strip", StripHandler)
+
+		mux.ServeHTTP(rec, req)
 
 		if rec.Code != http.StatusUnsupportedMediaType {
 			t.Fatalf("expected 415, got %d (body=%q)", rec.Code, rec.Body.String())
